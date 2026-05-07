@@ -60,6 +60,13 @@ class AccountPaymentGroup(models.Model):
             return
 
         base_neto = self._sircar_compute_base_neto()
+        if base_neto <= 0:
+            self._sircar_log(_(
+                "Sin facturas imputadas (anticipo puro) o base "
+                "imponible = 0. No se calculan retenciones."
+            ))
+            self.sircar_retentions_computed = True
+            return
         for cond in conditions:
             mapping = Mapping.search([
                 ("company_id", "=", self.company_id.id),
