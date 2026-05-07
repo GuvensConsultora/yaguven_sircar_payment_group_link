@@ -5,7 +5,7 @@ Hereda solo `account.payment.group` (modelo nativo Odoo Enterprise);
 los modelos del custom yaguven_payment_group y de yaguven_sircar se
 leen sin extender, como datasource.
 """
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.misc import html_escape
 from markupsafe import Markup
@@ -19,9 +19,25 @@ class AccountPaymentGroup(models.Model):
         default=False,
         copy=False,
         help="Indica si ya se ejecutó el cálculo automático de "
-             "retenciones SIRCAR sobre esta OP. Permite que el botón "
-             "se muestre solo cuando aún no se calcularon.",
+             "retenciones SIRCAR sobre esta OP.",
     )
+
+    @api.onchange("to_pay_move_line_ids")
+    def _onchange_to_pay_compute_sircar(self):
+        """Auto-calcula retenciones SIRCAR al cambiar los comprobantes
+        imputados, sin necesidad de botón. Solo aplica en draft y para
+        OPs a proveedor (las retenciones IIBB practicadas son sobre
+        pagos a proveedores)."""
+        for group in self:
+            if (group.state != "draft"
+                    or group.partner_type != "supplier"
+                    or not group.partner_id):
+                continue
+            try:
+                group._compute_sircar_retentions(silent=True)
+            except Exception:
+                # En onchange no rompemos UX; solo skip silencioso si falla.
+                continue
 
     def action_compute_sircar_retentions(self):
         """Calcula las retenciones SIRCAR aplicables al partner de
@@ -30,13 +46,17 @@ class AccountPaymentGroup(models.Model):
             group._compute_sircar_retentions()
         return True
 
-    def _compute_sircar_retentions(self):
+    def _compute_sircar_retentions(self, silent=False):
         self.ensure_one()
         if self.partner_type != "supplier":
+            if silent:
+                return
             raise UserError(_(
                 "Las retenciones SIRCAR aplican solo a OPs de proveedor."
             ))
         if self.state != "draft":
+            if silent:
+                return
             raise UserError(_(
                 "La OP debe estar en borrador para calcular retenciones."
             ))
