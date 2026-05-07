@@ -1,6 +1,6 @@
 {
     "name": "Yagüven SIRCAR ↔ Payment Group Bridge",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "summary": (
         "Auto-cálculo de retenciones IIBB SIRCAR sobre Recibos / OPs "
         "del módulo yaguven_payment_group, según las condiciones "

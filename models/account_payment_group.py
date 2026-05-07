@@ -103,7 +103,9 @@ class AccountPaymentGroup(models.Model):
                 })
                 continue
 
-            amount = round(base_neto * tax.amount / 100.0, 2)
+            amount = self.company_id.currency_id.round(
+                base_neto * tax.amount / 100.0
+            )
             WH.create({
                 "payment_group_id": self.id,
                 "tax_id": tax.id,
@@ -148,7 +150,7 @@ class AccountPaymentGroup(models.Model):
             return 0.0
         pagado_bruto = self.to_pay_amount or 0.0
         ratio = min(pagado_bruto / total_bruto, 1.0)
-        return round(total_neto * ratio, 2)
+        return self.company_id.currency_id.round(total_neto * ratio)
 
     def _sircar_log(self, message):
         self.ensure_one()
